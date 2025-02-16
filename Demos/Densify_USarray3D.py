@@ -40,7 +40,6 @@ class Doublel_kan(nn.Module):
         self.kan2 = KAN([out_channels, out_channels], base_activation=nn.Identity, grid_range=[-0.2, 0.2])
     def forward(self, x):
         x1 = self.kan1(x)
-        # x2 = self.kan2(torch.cat([x, x1], dim=2))
         x2 = self.kan2(x1)
 
         return x2
@@ -85,21 +84,17 @@ class MyDataset(torch.utils.data.Dataset):
 subdata = np.load('USarray3D-data.npy')
 print(subdata.shape)
 factor = 4
-# 创建新的网格
 new_x = subdata.shape[1] * factor
 new_y = subdata.shape[2] * factor
 
-# 创建新的索引网格
-# 通过 np.meshgrid 创建新的索引（这里你可以替换为你的矩阵索引）
 new_x_indices = torch.arange(0, subdata.shape[1], 1/factor, dtype=torch.float32)  # 在x轴上等间隔插值
 new_y_indices = torch.arange(0, subdata.shape[2], 1/factor, dtype=torch.float32)  # 在y轴上等间隔插值
 print(new_x_indices, new_x_indices.shape, new_y_indices.shape)
 
-# 使用广播机制生成新的索引网格
 new_indices = torch.stack(torch.meshgrid(new_x_indices, new_y_indices), dim=-1).view(-1, 2)
 print(new_indices.shape)
 
-net = torch.load('./trained_model_data-USarray3D-using_2D_coords-20241125/2000.pth')
+net = torch.load('2000.pth')
 net = net.to(device)
 
 test_loader = torch.utils.data.DataLoader(dataset=MyDataset(new_indices.unsqueeze(1)), batch_size=32, shuffle=False, num_workers=0, drop_last=False)
@@ -117,12 +112,5 @@ print(predict.shape)
 predict = np.reshape(predict.T, (5400, 16 * factor, 28 * factor))
 print(predict.shape)
 
-# np.save('./trained_model_data-USarray3D-using_2D_coords-20241125/pro-2000_desified_factor_4.npy', predict)
-
-plt.figure()
-plt.imshow(subdata[:, 11, :], aspect=0.01, cmap='seismic', clim = (-0.05, 0.05))
-
-plt.figure()
-plt.imshow(predict[:, 11, :], aspect=0.02, cmap='seismic', clim = (-0.05, 0.05))
-plt.show()
+# np.save('pro-2000_desified_factor_4.npy', predict)
 
