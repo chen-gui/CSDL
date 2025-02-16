@@ -49,16 +49,14 @@ class Doublel_kan(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.kan1 = KAN([in_channels, out_channels], base_activation=nn.Identity, grid_range=[-1, 1])
-
         self.kan2 = KAN([out_channels, out_channels], base_activation=nn.Identity, grid_range=[-1, 1])
     def forward(self, x):
         x1 = self.kan1(x)
-        # x2 = self.kan2(torch.cat([x, x1], dim=2))
         x2 = self.kan2(x1)
 
         return x2
 
-class KAN5D(nn.Module):
+class SeismoNet(nn.Module):
     def __init__(self, inchan=2, outchan=201, c1=8):
         super().__init__()
 
@@ -91,27 +89,14 @@ class MyDataset(torch.utils.data.Dataset):
     def __getitem__(self, index):
         return self.X[index]
 
-def zero_cross_corr(input, label):
-    dot_sum = torch.sum(input * label)
-    dot_sum_sqrt111 = torch.sqrt(torch.sum(input * input))
-    dot_sum_sqrt222 = torch.sqrt(torch.sum(label * label))
-    inverse_zero_cross_corr = 1 - (dot_sum/(dot_sum_sqrt111*dot_sum_sqrt222))
-    return inverse_zero_cross_corr
-
-
-subdata = np.load('ssprecursor3D-data.npy')
+subdata = np.load('../Data/ssprecursor3D-data.npy')
 print(subdata.shape)
 print(subdata.max(), subdata.min())
 
-mask = np.load('ssprecursor3D-mask.npy')
+mask = np.load('../Data/ssprecursor3D-mask.npy')
 mask = np.array(mask, dtype=np.float32)
 
 lossdata = np.copy(subdata)
-
-
-# plt.figure()
-# plt.imshow(subdata[:, :, :, 3, 3].reshape(250, 100), cmap=cseis(), vmin=-5, vmax=5, aspect='auto')
-# plt.show()
 
 non_missing_indices = np.argwhere(mask[0] == 1)
 print(non_missing_indices.shape)
@@ -132,7 +117,7 @@ missing_indices = np.array(missing_indices, dtype=np.float32)
 test_loader = torch.utils.data.DataLoader(dataset=MyDataset(torch.tensor(missing_indices).unsqueeze(1)), batch_size=256, shuffle=False, num_workers=0, drop_last=False)
 
 
-net = KAN5D().to(device)
+net = SeismoNet().to(device)
 optimizer = optim.Adam(net.parameters(), lr=5e-5)
 loss_function = nn.MSELoss(reduction='mean')
 net.train()
@@ -147,8 +132,7 @@ for epoch in range(num_epoch):
 
         output = net(tranindex)
 
-        train_loss = loss_function(output, tranlabel) #+ 0.01 *zero_cross_corr(output, tranlabel)
-
+        train_loss = loss_function(output, tranlabel) 
         optimizer.zero_grad(set_to_none=True)
         train_loss.backward()
         optimizer.step()
@@ -156,8 +140,8 @@ for epoch in range(num_epoch):
         loop1.set_description(f'Train-Epoch [{epoch}/{num_epoch}]')
         loop1.set_postfix(loss=train_loss.item())
 
-    if (epoch + 1) % 250 == 0:
-        torch.save(net, './trained_model_data_SS_precursor3D_field_data/{}.pth'.format(int(epoch + 1)))
+    if (epoch + 1) % 1000 == 0:
+        # torch.save(net, '{}.pth'.format(int(epoch + 1)))
         out_data = torch.zeros((1, 1, 201), dtype=torch.float32)
         with torch.no_grad():
             net.eval()
@@ -171,7 +155,7 @@ for epoch in range(num_epoch):
 
         subdata[:, missing_indices_for_output[:, 0], missing_indices_for_output[:, 1]] = predict.T
 
-        np.save('./trained_model_data_SS_precursor3D_field_data/{}.npy'.format(int(epoch + 1)), subdata)
+        # np.save('{}.npy'.format(int(epoch + 1)), subdata)
 
         # plt.figure()
         # plt.imshow(lossdata.reshape(201, 320), cmap='jet', vmin=-0.01, vmax=0.01, aspect='auto')
