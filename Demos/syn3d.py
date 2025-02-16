@@ -88,11 +88,11 @@ class MyDataset(torch.utils.data.Dataset):
     def __getitem__(self, index):
         return self.X[index]
 
-clean = np.load('syn3d.npy')
+clean = np.load('../Data/syn3d.npy')
 print(clean.shape)
 print(clean.max(), clean.min())
-subdata = np.load('syn3d-subdata.npy')
-mask = np.load('syn3d-mask.npy')
+subdata = np.load('../Data/syn3d-subdata.npy')
+mask = np.load('../Data/syn3d-mask.npy')
 
 lossdata = np.copy(subdata)
 
