@@ -40,7 +40,6 @@ class Doublel_kan(nn.Module):
         self.kan2 = KAN([out_channels, out_channels], base_activation=nn.Identity, grid_range=[-0.2, 0.2])
     def forward(self, x):
         x1 = self.kan1(x)
-        # x2 = self.kan2(torch.cat([x, x1], dim=2))
         x2 = self.kan2(x1)
 
         return x2
