@@ -59,7 +59,6 @@ class Doublel_kan(nn.Module):
 class SeismoNet(nn.Module):
     def __init__(self, inchan=2, outchan=100, c1=4):
         super().__init__()
-
         self.c1 = Doublel_kan(inchan, c1)
         self.c2 = Doublel_kan(c1, c1*2)
         self.c3 = Doublel_kan(c1*2, c1*4)
@@ -89,66 +88,12 @@ class MyDataset(torch.utils.data.Dataset):
     def __getitem__(self, index):
         return self.X[index]
 
-def subsampling3D(x, ratio=0.8):
-    [t, n1, n2] = x.shape
-    d = np.reshape(x, (t, n1*n2))
-    mask = np.ones_like(d, dtype=np.float32)
-    list = np.random.choice(n1*n2, int(n1*n2*ratio), replace=False)
-    mask[:, list] = 0
-    mask_out = np.reshape(mask, (t, n1, n2))
-    out = mask_out * x
-    return out, mask_out
-
-def Addnoise(x, snr):
-    x = np.array(x, dtype=np.float32)
-    n1, n2, n3 = np.shape(x)
-    x = np.reshape(x, (n1, n2*n3))
-
-    Nx = len(x)  # 求出信号的长度
-    noise = np.random.randn(n1, n2*n3) # 用randn产生正态分布随机数
-    signal_power = np.sum(x*x)/Nx # 求信号的平均能量
-    noise_power = np.sum(noise*noise)/Nx # 求噪声的平均能量
-    noise_variance = signal_power/(math.pow(10., (snr/10))) #计算噪声设定的方差值
-    noise = math.sqrt(noise_variance/noise_power)*noise # 按照噪声能量构成相应的白噪声
-    y = x+noise
-    y = np.reshape(y, (n1, n2, n3))
-    return y
-
-def Add_random_erratic_noise(x, snr):
-    x = np.array(x, dtype=np.float32)
-    n1, n2, n3 = np.shape(x)
-    x = np.reshape(x, (n1, n2*n3))
-
-    Nx = len(x)  # 求出信号的长度
-    noise = np.random.randn(n1, n2*n3) # 用randn产生正态分布随机数
-    signal_power = np.sum(x*x)/Nx # 求信号的平均能量
-    noise_power = np.sum(noise*noise)/Nx # 求噪声的平均能量
-    noise_variance = signal_power/(math.pow(10., (snr/10))) #计算噪声设定的方差值
-    noise = math.sqrt(noise_variance/noise_power)*noise # 按照噪声能量构成相应的白噪声
-
-    erra_in = np.random.randint(0, n2*n3, size=100)
-    for i in range(100):
-        noise[:, erra_in[i]] = noise[:, erra_in[i]]*10
-
-    y = x+noise
-    y = np.reshape(y, (n1, n2, n3))
-    return y
-
-clean = np.load('CG_Parabolic3D_SRLpapaer.npy')
+clean = np.load('../Data/syn3d.npy')
 print(clean.shape)
 print(clean.max(), clean.min())
 
-noisy = Addnoise(clean, 2)
-np.save('trained_model_data-CG_Parabolic3D_SRLpapaer-off_grid_inter_four_times/noisy_offgrid.npy', noisy)
-stepx = 4
-stepy = 4
-subdata = noisy[:, ::stepx, ::stepy]
-np.save('trained_model_data-CG_Parabolic3D_SRLpapaer-off_grid_inter_four_times/subdata_offgrid.npy', subdata)
-
+subdata = np.load('../Data/obs_syn3d_OTGinter.npy')
 print(subdata.shape)
-# plt.figure()
-# plt.imshow(subdata[:, :, 10], cmap=cseis(), vmin=-0.5, vmax=0.5, aspect='auto')
-# plt.show()
 
 non_missing_indices = np.argwhere(subdata[0] != 10000)
 print(non_missing_indices.shape)
@@ -193,8 +138,8 @@ for epoch in range(num_epoch):
         loop1.set_description(f'Train-Epoch [{epoch}/{num_epoch}]')
         loop1.set_postfix(loss=train_loss.item())
 
-    if (epoch + 1) % 250 == 0:
-        torch.save(net, 'trained_model_data-CG_Parabolic3D_SRLpapaer-off_grid_inter_four_times/{}.pth'.format(int(epoch + 1)))
+    if (epoch + 1) % 1000 == 0:
+        # torch.save(net, '{}.pth'.format(int(epoch + 1)))
         out_data = torch.zeros((1, 1, 100), dtype=torch.float32)
         net.eval()
         with torch.no_grad():
@@ -206,7 +151,7 @@ for epoch in range(num_epoch):
         predict = out_data[1:].squeeze().numpy()
         predict = np.reshape(predict.T, (100, 80, 80))
 
-        np.save('trained_model_data-CG_Parabolic3D_SRLpapaer-off_grid_inter_four_times/{}.npy'.format(int(epoch + 1)), predict)
+        # np.save('{}.npy'.format(int(epoch + 1)), predict)
 
         # plt.figure()
         # plt.imshow(clean[:, :, 40], cmap=cseis(), vmin=-0.5, vmax=0.5, aspect='auto')
