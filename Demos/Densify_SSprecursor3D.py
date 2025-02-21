@@ -92,7 +92,7 @@ print(new_x_indices, new_x_indices.shape, new_y_indices.shape)
 new_indices = torch.stack(torch.meshgrid(new_x_indices, new_y_indices), dim=-1).view(-1, 2)
 print(new_indices.shape)
 
-net = torch.load('1000.pth')
+net = torch.load('../model/Densify_SS3D.pth')
 net = net.to(device)
 
 test_loader = torch.utils.data.DataLoader(dataset=MyDataset(new_indices.unsqueeze(1)), batch_size=256, shuffle=False, num_workers=0, drop_last=False)
