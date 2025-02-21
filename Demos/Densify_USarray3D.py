@@ -81,7 +81,7 @@ class MyDataset(torch.utils.data.Dataset):
     def __getitem__(self, index):
         return self.X[index]
 
-subdata = np.load('USarray3D-data.npy')
+subdata = np.load('..\Data\USarray3D-data.npy')
 print(subdata.shape)
 factor = 4
 new_x = subdata.shape[1] * factor
@@ -93,8 +93,8 @@ print(new_x_indices, new_x_indices.shape, new_y_indices.shape)
 
 new_indices = torch.stack(torch.meshgrid(new_x_indices, new_y_indices), dim=-1).view(-1, 2)
 print(new_indices.shape)
-
-net = torch.load('2000.pth')
+# Note: the well-trained model "Densify_USArray3D.pth" can be download using this link: https://drive.google.com/file/d/1PjdNy__VPX0n94WR3sXZucjnyxGvcwAx/view?usp=sharing
+net = torch.load('..\model\Densify_USArray3D.pth')
 net = net.to(device)
 
 test_loader = torch.utils.data.DataLoader(dataset=MyDataset(new_indices.unsqueeze(1)), batch_size=32, shuffle=False, num_workers=0, drop_last=False)
